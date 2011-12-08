@@ -1,0 +1,135 @@
+#!/bin/bash  -vx
+#
+# usptomo-tweet.sh: twitterにメッセージを投げるシェルスクリプト
+#
+# written by R.Ueda (USP友の会) 20111208
+#
+# 参考：http://www.kuropug.com/Shellscriptter/top.html
+#
+# バグ：urlencodeが不完全
+# なぜか半角が全角になり、ﾀﾞｧｼｴﾘｲｪｽが入力できない。
+
+tmp=/tmp/$$
+
+ERROR_CHECK (){
+	NUM=$(echo ${PIPESTATUS[@]} | grep '[1-9]' | wc -l)
+	[ $NUM -eq 0 ] && return
+
+	echo "エラー"
+	rm -f $tmp-*
+	exit 1
+}
+
+############################################
+#twitterからもらったキーを変数に入れる。
+#アカウントごとにアプリ申請をして、キーをもらってください。
+
+#場所やファイル名はお好みで
+source ~/twitter.key
+
+#以下のファイルから変数が読み込まれます。
+#+++twitter.key+++++++++++++++++++++++++++++++++++++++++++
+#OAUTH_CONSUMER_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
+#CONSUMER_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#OAUTH_TOKEN_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#OAUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+############################################
+#雑多な変数
+URL=http://twitter.com/statuses/update.json
+ENC_URL=$(echo $URL | nkf -wMQ | tr '=' '%' | sed 's/%2E/./g')
+NONCE=${RANDOM}${RANDOM}${RANDOM}${RANDOM}
+KEY=$CONSUMER_SECRET'&'$OAUTH_TOKEN_SECRET
+
+############################################
+#twiteの読み込みとエンコード
+[ "_$@" = "_" ] && exit 1
+
+#ここらへんがまだ整理されていない
+cat << FIN > $tmp-short-sed
+s/%2F/\//g
+s/%40/@/g
+s/%7E/~/g
+s/%2E/./g
+FIN
+#s/%2A/*/g
+
+#同上
+cat << FIN > $tmp-long-sed
+s/%257E/~/g
+s/%255F/_/g
+s/%252D/-/g
+s/%252E/./g
+FIN
+#s/%252A/*/g
+#s/%252F/\//g
+#s/%2540/@/g
+
+echo "$@"	|
+nkf -wMQ	|
+tr -d '\n'	|
+sed 's/==/=/g' 	> $tmp-tweet
+ERROR_CHECK
+
+TWEET_POST=$(tr '=' '%' < $tmp-tweet | tr ' ' '+' | sed -f $tmp-short-sed -)
+TWEET_HEADER=$(sed 's/=/%25/g' < $tmp-tweet | sed -f $tmp-long-sed -)
+
+############################################
+#パラメータ設定
+
+cat << FIN > $tmp-params
+oauth_consumer_key $OAUTH_CONSUMER_KEY
+oauth_nonce $NONCE
+oauth_signature_method HMAC-SHA1
+oauth_timestamp $(date +%s)
+oauth_token $OAUTH_TOKEN
+oauth_version 1.0
+status $TWEET_HEADER
+FIN
+
+###############################################
+#oauthシグネチャを作る
+echo -n "POST&"${ENC_URL}"&" > $tmp-head
+
+sort $tmp-params		|
+#ここらへんの記号の変換もかなり怪しい
+sed 's/$/%26/'			|
+sed 's/ /%3D/'			|
+tr -d '\n'			|
+sed 's/%26$//'			|
+cat $tmp-head -			|
+tr -d '\n'			|
+openssl sha1 -hmac $KEY -binary	|
+openssl base64			> $tmp-key
+ERROR_CHECK
+
+SIGNATURE="oauth_signature "$(cat $tmp-key)
+
+###############################################
+#ヘッダ文字列の作成
+echo $SIGNATURE		|
+cat $tmp-params -	|
+grep -v "^status"	|
+sort			|
+tr ' ' '\n'		|
+nkf -wMQ		|
+sed 's/=5F/_/g'		|
+sed 's/=2D/-/g'		|
+sed 's/=2E/./g'		|
+tr '=' '%'		|
+awk '{if(NR%2==1){printf("%s=",$1)}else{printf("%s,",$1)}}'	|
+sed 's/,$//'		> $tmp-header-str
+ERROR_CHECK
+
+HEADER_PARAMS_STR=$(cat $tmp-header-str)
+
+#########################################
+#出力!
+curl -H "Authorization : OAuth ${HEADER_PARAMS_STR}" \
+	-d "status=${TWEET_POST}"	\
+	"http://twitter.com/statuses/update.json"
+ERROR_CHECK
+
+rm -f $tmp-*
+exit 0
