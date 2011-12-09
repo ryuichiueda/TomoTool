@@ -118,17 +118,16 @@ sed 's/=5F/_/g'		|
 sed 's/=2D/-/g'		|
 sed 's/=2E/./g'		|
 tr '=' '%'		|
+#奇数行：項目名、偶数行：値なので、項目名=値に整形
 awk '{if(NR%2==1){printf("%s=",$1)}else{printf("%s,",$1)}}'	|
 sed 's/,$//'		> $tmp-header-str
 ERROR_CHECK
 
-HEADER_PARAMS_STR=$(cat $tmp-header-str)
+HEADER_PARAMS_STR="Authorization : OAuth "$(cat $tmp-header-str)
 
 #########################################
 #出力!
-curl -H "Authorization : OAuth ${HEADER_PARAMS_STR}" \
-	-d "status=${TWEET_POST}"	\
-	"http://twitter.com/statuses/update.json"
+curl -H "${HEADER_PARAMS_STR}" -d "status=${TWEET_POST}" "${URL}"
 ERROR_CHECK
 
 rm -f $tmp-*
