@@ -1,9 +1,10 @@
 #!/bin/bash
 #
 # bashCMS用reST -> html変換
+# 注意：観賞用。ちゃんとライブラリを使いましょう。
 #
 # written by R. Ueda (USP友の会)
-
+#
 # The MIT License
 #
 # Copyright (C) 2012 Ryuichi Ueda
