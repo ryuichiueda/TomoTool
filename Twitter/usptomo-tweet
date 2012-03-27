@@ -68,8 +68,8 @@ FIN
 
 echo "$@"	|
 nkf -wMQ	|
-tr -d '\n'	|
-sed 's/==/=/g' 	> $tmp-tweet
+sed 's/=$//g'	|
+tr -d '\n'	> $tmp-tweet
 ERROR_CHECK
 
 TWEET_POST=$(tr '=' '%' < $tmp-tweet | tr ' ' '+' | sed -f $tmp-short-sed -)
