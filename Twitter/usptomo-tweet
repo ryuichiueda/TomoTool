@@ -39,7 +39,9 @@ source ~/twitter.key
 
 ############################################
 #雑多な変数
-URL=http://twitter.com/statuses/update.json
+
+#20121021: URLが変更になった
+URL=http://api.twitter.com/1.1/statuses/update.json
 ENC_URL=$(echo $URL | nkf -wMQ | tr '=' '%' | sed 's/%2E/./g')
 NONCE=${RANDOM}${RANDOM}${RANDOM}${RANDOM}
 KEY=$CONSUMER_SECRET'&'$OAUTH_TOKEN_SECRET
@@ -50,12 +52,13 @@ KEY=$CONSUMER_SECRET'&'$OAUTH_TOKEN_SECRET
 
 #ここらへんがまだ整理されていない
 cat << FIN > $tmp-short-sed
-s/%2F/\//g
-s/%40/@/g
 s/%7E/~/g
 s/%2E/./g
 FIN
 #s/%2A/*/g
+# 20121021: @と/のエンコードは強制になったようだ。
+#s/%2F/\//g
+#s/%40/@/g
 
 #同上
 cat << FIN > $tmp-long-sed
