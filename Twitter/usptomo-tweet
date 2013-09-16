@@ -2,13 +2,11 @@
 #
 # usptomo-tweet.sh: twitterにメッセージを投げるシェルスクリプト
 #
-# written by R.Ueda (USP友の会) 20130915
+# written by R.Ueda (USP友の会) 20130916
 #
 # 参考：http://www.kuropug.com/Shellscriptter/top.html
 #
-# バグ：urlencodeが不完全
 # なぜか半角が全角になり、ﾀﾞｧｼｴﾘｲｪｽが入力できない。
-# 変数の扱いがけっこうぞんざい
 
 #中間ファイルの場所（/tmpが気にくわなければ他に変えること）
 tmp=/tmp/$$
@@ -28,25 +26,22 @@ source ~/twitter.key
 #ACCESSTOKEN_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+#エンコーディングルール
+enc () {
+	nkf -wMQ | sed 's/=$//' | tr '=' '%' |
+	sed -e 's/%7E/~/g' -e 's/%5F/_/g' -e 's/%2D/-/g' -e 's/%2E/./g'	|
+	tr -d '\n'
+}
+
 #送信先
 URL=http://api.twitter.com/1.1/statuses/update.json
-ENC_URL=$(nkf -wMQ <<< $URL | tr '=' '%' | sed 's/%2E/./g')
-
-#エンコードしない文字の指定
-cat << FIN > $tmp-sed
-s/%7E/~/g
-s/%5F/_/g
-s/%2D/-/g
-s/%2E/./g
-FIN
+ENC_URL=$(enc <<< "$URL")
 
 #ツイートの読み込みとエンコード
-TW=$(nkf -wMQ <<< "$*" | tr -d '\n' | sed 's/==/=/g' |\
-	 tr '= ' '%+' | sed -f $tmp-sed)
+TW=$(enc <<< "$*")
 
 ############################################
 #パラメータ設定
-
 cat << FIN > $tmp-params
 oauth_consumer_key $CONSUMER_KEY
 oauth_nonce $(date +%s%N)
@@ -54,7 +49,7 @@ oauth_signature_method HMAC-SHA1
 oauth_timestamp $(date +%s)
 oauth_token $ACCESS_TOKEN
 oauth_version 1.0
-status $(echo $TW | sed 's/%/%25/g')
+status $TW
 FIN
 
 ###############################################
@@ -65,9 +60,8 @@ echo "POST&"${ENC_URL}"&" > $tmp-head
 
 sort $tmp-params		|
 #行末に%26（アンド）をつけ、空白を%3D（イコール）に変換
-sed -e 's/$/%26/' -e 's/ /%3D/'	|
-#改行を取って一行に(&key=value&key=value...)
-tr -d '\n'			|
+sed -e 's/$/\&/' -e 's/ /=/'	|
+enc				|
 #一番最後の&をとる
 sed 's/%26$//'			|
 #頭に署名キーをつける
@@ -78,30 +72,25 @@ tr -d '\n'			|
 openssl sha1 -hmac $CONSUMER_SECRET'&'$ACCESS_TOKEN_SECRET -binary	|
 openssl base64			> $tmp-key
 
-SIGNATURE="oauth_signature "$(cat $tmp-key)
-
 ###############################################
 #ヘッダ文字列の作成
 
-echo $SIGNATURE		|
-cat $tmp-params -	|
-grep -v "^status"	|
-sort			|
+enc < $tmp-key						|
+awk '{print "oauth_signature",$0}' 			|
+cat $tmp-params -					|
+grep -v "^status"					|
+sort							|
 #項目 値の並びを改行して縦一列に並び替える
-tr ' ' '\n'		|
-#エンコード
-nkf -wMQ		|
-tr '=' '%'		|
-sed -f $tmp-sed		|
+tr ' ' '\n'						|
 #縦一列を今度は横一列にして 項目=値,項目=値,...の形式に
 awk 'NR%2==1{print $1 "="}NR%2==0{print $1 ","}'	|
-tr -d '\n' 	|
+tr -d '\n'						|
 #一番最後のカンマが余計
 sed 's/,$//' 	> $tmp-header-str
 
 #########################################
 #出力!
-curl -H "Authorization : OAuth "$(cat $tmp-header-str) \
-     -d "status=${TW}" "${URL}"
+curl -H "Authorization : OAuth $(cat $tmp-header-str)" \
+     -d "status=$TW" "$URL"
 
 rm -f $tmp-*
