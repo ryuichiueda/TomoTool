@@ -5,8 +5,6 @@
 # written by R.Ueda (USP友の会) 20130916
 #
 # 参考：http://www.kuropug.com/Shellscriptter/top.html
-#
-# なぜか半角が全角になり、ﾀﾞｧｼｴﾘｲｪｽが入力できない。
 
 #中間ファイルの場所（/tmpが気にくわなければ他に変えること）
 tmp=/tmp/$$
@@ -28,9 +26,8 @@ source ~/twitter.key
 
 #エンコーディングルール
 enc () {
-	nkf -wMQ | sed 's/=$//' | tr '=' '%' |
-	sed -e 's/%7E/~/g' -e 's/%5F/_/g' -e 's/%2D/-/g' -e 's/%2E/./g'	|
-	tr -d '\n'
+	nkf -wMQx | sed 's/=$//' | tr '=' '%' | tr -d '\n' |
+	sed -e 's/%7E/~/g' -e 's/%5F/_/g' -e 's/%2D/-/g' -e 's/%2E/./g'
 }
 
 #送信先
