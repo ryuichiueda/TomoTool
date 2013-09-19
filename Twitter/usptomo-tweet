@@ -23,7 +23,7 @@ source ~/twitter.key
 #CONSUMER_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
 #CONSUMER_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 #ACCESS_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-#ACCESSTOKEN_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#ACCESS_TOKEN_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #エンコーディングルール
