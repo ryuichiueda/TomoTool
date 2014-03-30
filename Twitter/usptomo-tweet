@@ -31,7 +31,7 @@ enc () {
 }
 
 #送信先
-URL=http://api.twitter.com/1.1/statuses/update.json
+URL=https://api.twitter.com/1.1/statuses/update.json
 ENC_URL=$(enc <<< "$URL")
 
 #ツイートの読み込みとエンコード
